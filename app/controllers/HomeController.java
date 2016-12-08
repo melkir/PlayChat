@@ -2,6 +2,7 @@ package controllers;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
@@ -9,8 +10,6 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.*;
 import play.libs.F;
 import play.mvc.*;
-
-import akka.event.Logging;
 
 import javax.inject.Inject;
 import java.net.URL;
@@ -44,7 +43,7 @@ public class HomeController extends Controller {
     public Result index() {
         Http.Request request = request();
         String url = routes.HomeController.chat().webSocketURL(request);
-        return Results.ok(views.html.index.render(url));
+        return Results.ok(views.html.chat.render(url));
     }
 
     public WebSocket chat() {
@@ -60,7 +59,7 @@ public class HomeController extends Controller {
     /**
      * Checks that the WebSocket comes from the same origin.  This is necessary to protect
      * against Cross-Site WebSocket Hijacking as WebSocket does not implement Same Origin Policy.
-     *
+     * <p>
      * See https://tools.ietf.org/html/rfc6455#section-1.3 and
      * http://blog.dewhurstsecurity.com/2013/08/30/security-testing-html5-websockets.html
      */
@@ -80,9 +79,8 @@ public class HomeController extends Controller {
             URL url = new URL(origin);
             return url.getHost().equals("localhost")
                     && (url.getPort() == 9000 || url.getPort() == 19001);
-        } catch (Exception e ) {
+        } catch (Exception e) {
             return false;
         }
     }
-
 }

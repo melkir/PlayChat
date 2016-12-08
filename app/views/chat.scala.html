@@ -1,0 +1,144 @@
+@(url: String)
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/chat.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <title>Chat Room</title>
+    </head>
+    <body>
+        <div class="chat_window">
+            <div class="top_menu">
+                <div class="buttons">
+                    <div class="button close"></div>
+                    <div class="button minimize"></div>
+                    <div class="button maximize"></div>
+                </div>
+                <div class="title">Chat</div>
+            </div>
+            <ul class="messages"></ul>
+            <div class="bottom_wrapper clearfix">
+                <div class="message_input_wrapper">
+                    <input class="message_input" type="text" placeholder="Type your message here..." /></div>
+                <div class="send_message">
+                    <div class="icon"></div>
+                    <div class="text">Send</div>
+                </div>
+            </div>
+        </div>
+        <div class="message_template">
+            <li class="message">
+                <div class="avatar"></div>
+                <div class="text_wrapper">
+                    <div class="text"></div>
+                </div>
+            </li>
+        </div>
+
+        <script type='text/javascript' src='@routes.Assets.at("lib/jquery/jquery.js")'></script>
+        <script type='text/javascript' src='@routes.Assets.at("lib/flot/jquery.flot.js")'></script>
+
+        <script>
+            var user = prompt("Choose your username");
+
+            var $messages = $(".messages"),
+                $send = $('.send_message'),
+                $message = $('.message_input'),
+                connection = new WebSocket("@url");
+
+            $send.prop("disabled", true);
+
+            var send = function () {
+                var text = $message.val();
+                $message.val("");
+                var data = JSON.stringify({user: user, text: text});
+                connection.send(data);
+            };
+
+            connection.onopen = function () {
+                sendMessage(JSON.stringify({user: "Bot", text:'Hello ' + user + '! :)'}));
+                $send.prop("disabled", false);
+            };
+
+            connection.onerror = function (error) {
+                console.log('WebSocket Error ', error);
+            };
+
+            connection.onmessage = function (event) {
+                sendMessage(event.data);
+            };
+
+            connection.onclose = function () {
+                connection.send(user + " left the chat");
+            };
+
+            var Message;
+            Message = function (arg) {
+                this.text = arg.text, this.message_side = arg.message_side;
+                this.draw = function (_this) {
+                    return function () {
+                        var $message;
+                        $message = $($('.message_template').clone().html());
+                        $message.addClass(_this.message_side).find('.text').html(_this.text);
+                        $messages.append($message);
+                        return setTimeout(function () {
+                            return $message.addClass('appeared');
+                        }, 0);
+                    };
+                }(this);
+                return this;
+            };
+
+            var getMessageText, message_side, sendMessage;
+            message_side = 'right';
+            getMessageText = function () {
+                return $message.val();
+            };
+            sendMessage = function (data) {
+                data = JSON.parse(data);
+                var text = data.text;
+                var sender = data.user;
+                var $messages, message;
+                if (text.trim() === '') {
+                    return;
+                }
+                $message.val('');
+                $messages = $('.messages');
+                var originalSender = (sender === user);
+                message_side = (originalSender ? 'left' : 'right');
+                message = new Message({
+                    text: (originalSender ? text : '@@' + sender + ': ' + text),
+                    message_side: message_side
+                });
+                message.draw();
+                return $messages.animate({scrollTop: $messages.prop('scrollHeight')}, 300);
+            };
+            $send.click(function (e) {
+                return send(getMessageText());
+            });
+            $message.keyup(function (e) {
+                if (e.which === 13) {
+                    return send(getMessageText());
+                }
+            });
+
+            // For todays date
+            Date.prototype.today = function () {
+                return ((this.getDate() < 10)?"0":"") + this.getDate() +"/"+(((this.getMonth()+1) < 10)?"0":"")
+                        + (this.getMonth()+1) +"/"+ this.getFullYear();
+            };
+
+            // For the time now
+            Date.prototype.timeNow = function () {
+                return ((this.getHours() < 10)?"0":"") + this.getHours() +":"+ ((this.getMinutes() < 10)?"0":"")
+                        + this.getMinutes() +":"+ ((this.getSeconds() < 10)?"0":"") + this.getSeconds();
+            };
+
+        </script>
+
+    </body>
+</html>
